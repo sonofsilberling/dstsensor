@@ -1,68 +1,78 @@
+# sensor.py
+from __future__ import annotations
+from datetime import datetime, date
+
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers.event import async_track_time_change
-from homeassistant.core import callback
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_change
+from homeassistant.util import dt as dt_util
+
 from .const import DOMAIN
 from .entity import DSTForensics
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,
-    config_entry: ConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the sensor platform."""
     # Use Home Assistant's configured timezone
     tz_str = hass.config.time_zone
-    async_add_entities([DSTNextChangeSensor(tz_str)], True)
+    # We do NOT pass True here anymore. We handle the first update in the entity.
+    async_add_entities([DSTNextChangeSensor(tz_str)])
 
 
 class DSTNextChangeSensor(SensorEntity):
+    """The DST Transition Sensor."""
+
     _attr_icon = "mdi:clock-alert"
     _attr_name = "Next DST Change"
-    _attr_unique_id = "dst_next_change_sensor"
+    _attr_has_entity_name = True  # Best practice: uses integration name + entity name
 
-    def __init__(self, timezone_str):
+    def __init__(self, timezone_str: str) -> None:
+        """Initialize the sensor."""
         self._logic = DSTForensics(timezone_str)
-        self._state = None
-        self._attributes = {}
+        self._attr_unique_id = f"{timezone_str}_next_dst_change"
+        self._data = {}
 
-    async def async_added_to_hass(self):
-        """Schedule the daily update."""
-        # Update every day at 00:01
+    @property
+    def native_value(self) -> str | None:
+        """Return the date of the next change as the state."""
+        if moment := self._data.get("moment"):
+            return moment.date().isoformat()
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return the state attributes."""
+        return self._data
+
+    async def async_added_to_hass(self) -> None:
+        """Handle being added to HASS."""
+        # 1. Perform the very first calculation
+        self._update_state_logic()
+
+        # 2. Schedule the daily update at 00:01
         self.async_on_remove(
             async_track_time_change(
-                self.hass, self._update_sensor, hour=0, minute=1, second=0
+                self.hass, self._scheduled_update, hour=0, minute=1, second=0
             )
         )
 
     @callback
-    def _update_sensor(self, _now=None):
-        """Update the sensor state and attributes."""
+    def _scheduled_update(self, _now: datetime) -> None:
+        """Callback for scheduled daily update."""
+        self._update_state_logic()
+        self.async_write_ha_state()
+
+    def _update_state_logic(self) -> None:
+        """Core logic to fetch data from our Forensics class."""
         info = self._logic.get_dst_info()
-        self._state = info["moment"].date().isoformat()
-        self._attributes = {
-            "moment": info["moment"].isoformat(),
+        self._data = {
+            "moment": info["moment"],
             "direction": info["direction"],
             "days_to_event": info["days_to_event"],
             "timezone": self._logic.tz.key,
+            "message": info["message"],  # Added this back as it's useful
         }
-        self.async_write_ha_state()
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def extra_state_attributes(self):
-        return self._attributes
-
-    async def async_update(self):
-        """Manual update call (used on first setup)."""
-        self._update_state_logic()
-
-    def _update_state_logic(self):
-        # Sync wrapper for the update
-        self._update_sensor()
