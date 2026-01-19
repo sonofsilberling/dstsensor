@@ -1,0 +1,21 @@
+{
+    "title": "DST Transition Sensor",
+    "config": {
+        "step": {
+            "user": {
+                "title": "Setup DST Transition Sensor",
+                "description": "Do you want to add the DST Transition Sensor? It will automatically use the timezone configured in your Home Assistant settings."
+            }
+        },
+        "abort": {
+            "single_instance_allowed": "Only a single instance of this integration is allowed."
+        }
+    },
+    "entity": {
+        "sensor": {
+            "dst_next_change": {
+                "name": "Next DST Change"
+            }
+        }
+    }
+}
