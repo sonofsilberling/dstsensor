@@ -40,7 +40,7 @@ The main state of the sensor is the **Date** of the next transition (ISO format:
 
 ---
 
-## 💡 How it works (The Binary Search)
+## How it works (The Binary Search)
 
 To ensure maximum efficiency and precision, the integration employs a multi-tier search strategy rather than a standard linear loop:
 
@@ -50,7 +50,7 @@ To ensure maximum efficiency and precision, the integration employs a multi-tier
 
 This mathematical approach allows the sensor to find a single specific second out of the millions of seconds in a year in approximately **30-40 checks**, making it significantly faster and lighter than traditional Jinja2 templates.
 
-## 🖼️ Dashboard Example
+## Dashboard Example
 
 You can use the attributes to create a highly informative dashboard card:
 
