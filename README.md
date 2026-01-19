@@ -34,9 +34,10 @@ The main state of the sensor is the **Date** of the next transition (ISO format:
 | Attribute | Description | Example |
 | :--- | :--- | :--- |
 | `moment` | The exact timestamp of the shift | `2026-03-29T01:00:00+00:00` |
-| `direction` | Whether clocks go forward or back | `Spring Forward` |
-| `days_to_event` | Days remaining until the transition | `71` |
+| `direction` | Whether clocks go forward or back | `Move Forward` |
+| `days_to_event` | Days remaining until the transition (default state) | `71` |
 | `timezone` | The timezone being monitored | `Europe/London` |
+| `message` | Formatted message | `Clocks go forward (lose 1 hour)` |
 
 ---
 
