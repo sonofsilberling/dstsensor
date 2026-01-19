@@ -38,6 +38,7 @@ The main state of the sensor is the **Date** of the next transition (ISO format:
 | `days_to_event` | Days remaining until the transition (default state) | `71` |
 | `timezone` | The timezone being monitored | `Europe/London` |
 | `message` | Formatted message | `Clocks go forward (lose 1 hour)` |
+| `current_period` | Winter or Summer Time | `Winter Time` |
 
 ---
 
