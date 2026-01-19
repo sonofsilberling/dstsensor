@@ -1,14 +1,23 @@
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.core import callback
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import DOMAIN
 from .entity import DSTForensics
 
-async def async_setup_entry(hass, entry, async_add_entities):
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
     """Set up the sensor platform."""
     # Use Home Assistant's configured timezone
     tz_str = hass.config.time_zone
     async_add_entities([DSTNextChangeSensor(tz_str)], True)
+
 
 class DSTNextChangeSensor(SensorEntity):
     _attr_icon = "mdi:clock-alert"
@@ -24,7 +33,9 @@ class DSTNextChangeSensor(SensorEntity):
         """Schedule the daily update."""
         # Update every day at 00:01
         self.async_on_remove(
-            async_track_time_change(self.hass, self._update_sensor, hour=0, minute=1, second=0)
+            async_track_time_change(
+                self.hass, self._update_sensor, hour=0, minute=1, second=0
+            )
         )
 
     @callback
@@ -36,7 +47,7 @@ class DSTNextChangeSensor(SensorEntity):
             "moment": info["moment"].isoformat(),
             "direction": info["direction"],
             "days_to_event": info["days_to_event"],
-            "timezone": self._logic.tz.key
+            "timezone": self._logic.tz.key,
         }
         self.async_write_ha_state()
 
