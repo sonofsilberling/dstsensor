@@ -41,6 +41,7 @@ class DSTForensics:
             "days_to_event": (
                 transition_moment.date() - datetime.now(self.tz).date()
             ).days,
+            "date": transition_moment.date().isoformat(),
             "iso": transition_moment.isoformat(),
         }
 

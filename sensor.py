@@ -38,9 +38,16 @@ class DSTNextChangeSensor(SensorEntity):
 
     @property
     def native_value(self) -> str | None:
-        """Return the date of the next change as the state."""
-        if moment := self._data.get("moment"):
-            return moment.date().isoformat()
+        """Return the number of days to the next change as the state."""
+        # if moment := self._data.get("moment"):
+        #     return moment.date().isoformat()
+        if days_to_event := self._data.get("days_to_event"):
+            if days_to_event == 0:
+                return "Today"
+            elif days_to_event == 1:
+                return "Tomorrow"
+            else:
+                return f"In {days_to_event} days"
         return None
 
     @property
@@ -73,6 +80,8 @@ class DSTNextChangeSensor(SensorEntity):
             "moment": info["moment"],
             "direction": info["direction"],
             "days_to_event": info["days_to_event"],
+            "date": info["date"],
+            "iso": info["iso"],
             "timezone": self._logic.tz.key,
             "message": info["message"],  # Added this back as it's useful
         }
