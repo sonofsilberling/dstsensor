@@ -45,6 +45,21 @@ class DSTForensics:
             "iso": transition_moment.isoformat(),
         }
 
+    def get_current_period_name(self, base_dt: Optional[datetime] = None) -> str:
+        """
+        Returns 'Summer Time' or 'Winter Time' based on the 
+        current DST status of the timezone.
+        """
+        ref_dt = base_dt or datetime.now(self.tz)
+        if ref_dt.tzinfo is None:
+            ref_dt = ref_dt.replace(tzinfo=self.tz)
+
+        # .dst() returns a timedelta of the DST offset. 
+        # Non-zero means Summer/Daylight Saving Time is active.
+        is_dst = ref_dt.dst() != timedelta(0)
+        
+        return "Summer Time" if is_dst else "Winter Time"        
+
     def _find_exact_moment(self, base_dt: Optional[datetime] = None) -> datetime:
         """The precision binary search we built earlier."""
         ref_dt = base_dt or datetime.now(self.tz)
