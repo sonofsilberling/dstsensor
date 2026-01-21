@@ -7,14 +7,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_change
-from homeassistant.util import dt as dt_util
+# from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+# from .const import DOMAIN
 from .entity import DSTForensics
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the sensor platform."""
     # Use Home Assistant's configured timezone
@@ -76,6 +76,9 @@ class DSTNextChangeSensor(SensorEntity):
     def _update_state_logic(self) -> None:
         """Core logic to fetch data from our Forensics class."""
         info = self._logic.get_dst_info()
+        current_period = self._logic.get_current_period_name()
+        # current_tz_name = datetime.now(self._logic.tz).strftime('%Z')
+
         self._data = {
             "moment": info["moment"],
             "direction": info["direction"],
@@ -83,5 +86,7 @@ class DSTNextChangeSensor(SensorEntity):
             "date": info["date"],
             "iso": info["iso"],
             "timezone": self._logic.tz.key,
-            "message": info["message"],  # Added this back as it's useful
+            "message": info["message"], 
+            "current_period": current_period,
+            # "abbreviation" = current_tz_name,
         }

@@ -8,7 +8,8 @@ class DSTForensics:
         self.tz = ZoneInfo(timezone_str)
 
     def _get_offset(self, dt: datetime) -> float:
-        return dt.astimezone(self.tz).utcoffset().total_seconds()
+        offset = dt.astimezone(self.tz).utcoffset()
+        return offset.total_seconds() if offset is not None else 0.0
 
     def get_dst_info(self, base_dt: Optional[datetime] = None) -> Dict[str, Any]:
         """

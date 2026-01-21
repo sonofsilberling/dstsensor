@@ -17,5 +17,23 @@
                 "name": "Next DST Change"
             }
         }
-    }
+    },
+    "entity_component": {
+        "_": {
+            "state_attributes": {
+                "current_period": {
+                    "state": {
+                        "summer_time": "Summer Time",
+                        "winter_time": "Winter Time"
+                    }
+                },
+                "direction": {
+                    "state": {
+                        "move_forward": "Move Forward",
+                        "move_back": "Move Back"
+                    }
+                }
+            }
+        }
+    }    
 }
