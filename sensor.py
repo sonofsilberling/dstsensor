@@ -1,20 +1,23 @@
 # sensor.py
 from __future__ import annotations
 from datetime import datetime, date
+import logging
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_change
-# from homeassistant.util import dt as dt_util
+from homeassistant.util import dt as dt_util
 
 # from .const import DOMAIN
 from .entity import DSTForensics
 
+_LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(
-    hass: HomeAssistant, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant, config_entry:ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the sensor platform."""
     # Use Home Assistant's configured timezone
@@ -31,9 +34,13 @@ class DSTNextChangeSensor(SensorEntity):
     _attr_has_entity_name = True  # Best practice: uses integration name + entity name
 
     def __init__(self, timezone_str: str) -> None:
-        """Initialize the sensor."""
+        """Initialise the sensor."""
         self._logic = DSTForensics(timezone_str)
         self._attr_unique_id = f"{timezone_str}_next_dst_change"
+
+        # Internal Cache
+        self._cached_info = None
+        self._last_calculated_at = None
         self._data = {}
 
     @property
@@ -75,18 +82,65 @@ class DSTNextChangeSensor(SensorEntity):
 
     def _update_state_logic(self) -> None:
         """Core logic to fetch data from our Forensics class."""
-        info = self._logic.get_dst_info()
-        current_period = self._logic.get_current_period_name()
+
+        now_utc = dt_util.utcnow()
+
+        # --- Logic Gate: Should we recalculate? ---
+        should_recalculate = False
+
+        if self._cached_info is None:
+            # 1. No data available
+            should_recalculate = True
+        elif now_utc >= self._cached_info["moment"]:
+            # 2. Upcoming change is now in the past
+            should_recalculate = True
+        elif (self._cached_info["moment"] - now_utc).days < 7:
+            # 3. Upcoming change is less than a week away (Fail-safe for precision)
+            should_recalculate = True
+        elif self._last_calculated_at and (now_utc - self._last_calculated_at).days >= 7:
+            # 4. Last calculation was more than a week ago
+            should_recalculate = True    
+
+        # --- Execution ---
+        if should_recalculate:
+            # Expensive: Run the Binary Search
+            self._cached_info = self._logic.get_dst_info()
+            self._last_calculated_at = now_utc
+            self._cached_info["current_period"] = self._logic.get_current_period_name()
+            _LOGGER.debug("DST Sensor: Performed full binary search recalculation.")
+        else:
+            # Cheap: Reuse cached moment, but recalculate the countdown
+            if self._cached_info is not None and self._cached_info.get("moment") is not None:
+                self._cached_info["days_to_event"] = (self._cached_info["moment"].date() - now_utc.date()).days
+                _LOGGER.debug("DST Sensor: Reusing cached transition data.")                
+            else:
+                _LOGGER.debug("DST Sensor: No cached transition data to reuse.")                
+
+        info = self._cached_info
+        
         # current_tz_name = datetime.now(self._logic.tz).strftime('%Z')
 
-        self._data = {
-            "moment": info["moment"],
-            "direction": info["direction"],
-            "days_to_event": info["days_to_event"],
-            "date": info["date"],
-            "iso": info["iso"],
-            "timezone": self._logic.tz.key,
-            "message": info["message"], 
-            "current_period": current_period,
-            # "abbreviation" = current_tz_name,
-        }
+        if info is not None:
+            self._data = {
+                "moment": info["moment"],
+                "direction": info["direction"],
+                "days_to_event": info["days_to_event"],
+                "date": info["date"],
+                "iso": info["iso"],
+                "timezone": self._logic.tz.key,
+                "message": info["message"], 
+                "last_recalculated": self._last_calculated_at.isoformat(), # pyright: ignore[reportOptionalMemberAccess]
+                "current_period": info["current_period"],
+            }
+        else:
+            self._data = {
+                "moment": None,
+                "direction": None,
+                "days_to_event": None,
+                "date": None,
+                "iso": None,
+                "timezone": getattr(self._logic.tz, "key", None),
+                "last_recalculated": None,
+                "message": None,
+                "current_period": None,
+            }
