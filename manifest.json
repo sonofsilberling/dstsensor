@@ -1,7 +1,7 @@
 {
     "domain": "dstsensor",
     "name": "DST Transition Sensor",
-    "codeowners": ["@yourusername"],
+    "codeowners": ["sonofsilberling"],
     "config_flow": true,
     "documentation": "https://github.com/sonofsilberling/dstsensor",
     "iot_class": "local_push",
