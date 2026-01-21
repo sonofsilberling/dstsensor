@@ -28,11 +28,11 @@ class DSTForensics:
 
         # 3. Determine Direction
         if offset_after > offset_before:
-            direction = "Move Forward"
-            message = "Clocks go forward (lose 1 hour)"
+            direction = "move_forward"
+            message = "move_forward_message"
         else:
-            direction = "Move Back"
-            message = "Clocks go back (gain 1 hour)"
+            direction = "move_back"
+            message = "move_back_message"
 
         # 4. Format for Home Assistant
         return {
@@ -46,7 +46,7 @@ class DSTForensics:
             "iso": transition_moment.isoformat(),
         }
 
-    def get_current_period_name(self, base_dt: Optional[datetime] = None) -> str:
+    def get_current_period_key(self, base_dt: Optional[datetime] = None) -> str:
         """
         Returns 'Summer Time' or 'Winter Time' based on the 
         current DST status of the timezone.
@@ -59,7 +59,7 @@ class DSTForensics:
         # Non-zero means Summer/Daylight Saving Time is active.
         is_dst = ref_dt.dst() != timedelta(0)
         
-        return "Summer Time" if is_dst else "Winter Time"        
+        return "summer_time" if is_dst else "winter_time"       
 
     def _find_exact_moment(self, base_dt: Optional[datetime] = None) -> datetime:
         """The precision binary search we built earlier."""

@@ -1,20 +1,20 @@
 {
-    "title": "DST Transition Sensor",
+    "title": "Zeitumstellungssensor",
     "config": {
         "step": {
             "user": {
-                "title": "Setup DST Transition Sensor",
-                "description": "Do you want to add the DST Transition Sensor? It will automatically use the timezone configured in your Home Assistant settings."
+                "title": "Zeitumstellungssensor einrichten",
+                "description": "Möchten Sie den Zeitumstellungssensor hinzufügen? Er wird automatisch die in Ihren Home Assistant-Einstellungen konfigurierte Zeitzone verwenden."
             }
         },
         "abort": {
-            "single_instance_allowed": "Only a single instance of this integration is allowed."
+            "single_instance_allowed": "Es ist nur eine einzige Instanz dieser Integration erlaubt."
         }
     },
     "entity": {
         "sensor": {
             "dst_change_sensor": {
-                "name": "Next DST Change",
+                "name": "Nächste Zeitumstellung",
                 "default": "mdi:battery-unknown",
                 "range": {
                     "1": "mdi:battery",
@@ -37,21 +37,21 @@
             "state_attributes": {
                 "current_period": {
                     "state": {
-                        "summer_time": "Summer Time",
-                        "winter_time": "Winter Time"
+                        "summer_time": "Sommerzeit",
+                        "winter_time": "Winterzeit"
                     }
                 },
                 "direction": {
                     "state": {
-                        "move_forward": "Move Forward",
-                        "move_back": "Move Back"
+                        "move_forward": "Vorstellen",
+                        "move_back": "Zurückstellen"
                     }
                 },
                 "message": {
                     "state": {
                         "": "",
-                        "move_forward_message": "Clocks go forward (lose 1 hour)",
-                        "move_back_message": "Clocks go back (gain 1 hour)"
+                        "move_forward_message": "Die Uhren werden vorgestellt (1 Stunde weniger)",
+                        "move_back_message": "Die Uhren werden zurückgestellt (1 Stunde mehr)"
                     }
                 }
             }

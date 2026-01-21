@@ -1,16 +1,18 @@
 # sensor.py
 from __future__ import annotations
-from datetime import datetime, date
+from datetime import datetime #, date
 import logging
 
+# from const import DOMAIN
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
+from homeassistant.helpers.translation import async_get_translations
 
-# from .const import DOMAIN
+from .const import DOMAIN
 from .entity import DSTForensics
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,7 +30,8 @@ async def async_setup_entry(
 
 class DSTNextChangeSensor(SensorEntity):
     """The DST Transition Sensor."""
-
+    _attr_has_entity_name = True
+    _attr_translation_key = "dst_change_sensor"
     _attr_icon = "mdi:clock-alert"
     _attr_name = "Next DST Change"
     _attr_has_entity_name = True  # Best practice: uses integration name + entity name
@@ -65,7 +68,7 @@ class DSTNextChangeSensor(SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Handle being added to HASS."""
         # 1. Perform the very first calculation
-        self._update_state_logic()
+        await self._update_state_logic()
 
         # 2. Schedule the daily update at 00:01
         self.async_on_remove(
@@ -75,12 +78,12 @@ class DSTNextChangeSensor(SensorEntity):
         )
 
     @callback
-    def _scheduled_update(self, _now: datetime) -> None:
+    async def _scheduled_update(self, _now: datetime) -> None:
         """Callback for scheduled daily update."""
-        self._update_state_logic()
+        await self._update_state_logic()
         self.async_write_ha_state()
 
-    def _update_state_logic(self) -> None:
+    async def _update_state_logic(self) -> None:
         """Core logic to fetch data from our Forensics class."""
 
         now_utc = dt_util.utcnow()
@@ -103,10 +106,25 @@ class DSTNextChangeSensor(SensorEntity):
 
         # --- Execution ---
         if should_recalculate:
+            # This looks into your strings.json (or the localized equivalent)
+            translations = await async_get_translations(
+                self.hass,
+                self.hass.config.language,
+                "entity_component",
+                [DOMAIN]
+            )
+
+            # Helper to find the string in the translation map
+            def get_string(category, key):
+                # The translation map key structure: component.DOMAIN.entity_component._.state_attributes.CATEGORY.state.KEY
+                path = f"component.{DOMAIN}.entity_component.sensor.state_attributes.{category}.state.{key}"
+                return translations.get(path, key) # Fallback to the key itself if not found            
             # Expensive: Run the Binary Search
             self._cached_info = self._logic.get_dst_info()
             self._last_calculated_at = now_utc
-            self._cached_info["current_period"] = self._logic.get_current_period_name()
+            self._cached_info["direction"] = get_string("direction", self._cached_info["direction"])
+            self._cached_info["message"] = get_string("message", self._cached_info["message"])
+            self._cached_info["current_period"] = get_string("current_period", self._logic.get_current_period_key())
             _LOGGER.debug("DST Sensor: Performed full binary search recalculation.")
         else:
             # Cheap: Reuse cached moment, but recalculate the countdown

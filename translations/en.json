@@ -13,13 +13,27 @@
     },
     "entity": {
         "sensor": {
-            "dst_next_change": {
-                "name": "Next DST Change"
+            "dst_change_sensor": {
+                "name": "Next DST Change",
+                "default": "mdi:battery-unknown",
+                "range": {
+                    "1": "mdi:battery",
+                    "7": "mdi:battery-90",
+                    "14": "mdi:battery-80",
+                    "21": "mdi:battery-70",
+                    "28": "mdi:battery-60",  
+                    "35": "mdi:battery-50",
+                    "42": "mdi:battery-40",
+                    "49": "mdi:battery-30",
+                    "56": "mdi:battery-20",                  
+                    "63": "mdi:battery-10",    
+                    "70": "mdi:battery-outline"                                        
+                }                
             }
-        }
+        }  
     },
     "entity_component": {
-        "_": {
+        "sensor": {
             "state_attributes": {
                 "current_period": {
                     "state": {
@@ -31,6 +45,13 @@
                     "state": {
                         "move_forward": "Move Forward",
                         "move_back": "Move Back"
+                    }
+                },
+                "message": {
+                    "state": {
+                        "": "",
+                        "move_forward_message": "Clocks go forward (lose 1 hour)",
+                        "move_back_message": "Clocks go back (gain 1 hour)"
                     }
                 }
             }
