@@ -14,21 +14,7 @@
     "entity": {
         "sensor": {
             "dst_change_sensor": {
-                "name": "Nächste Zeitumstellung",
-                "default": "mdi:battery-unknown",
-                "range": {
-                    "1": "mdi:battery",
-                    "7": "mdi:battery-90",
-                    "14": "mdi:battery-80",
-                    "21": "mdi:battery-70",
-                    "28": "mdi:battery-60",  
-                    "35": "mdi:battery-50",
-                    "42": "mdi:battery-40",
-                    "49": "mdi:battery-30",
-                    "56": "mdi:battery-20",                  
-                    "63": "mdi:battery-10",    
-                    "70": "mdi:battery-outline"                                        
-                }                
+                "name": "Nächste Zeitumstellung"             
             }
         }  
     },

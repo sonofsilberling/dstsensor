@@ -4,6 +4,8 @@ A precision, "set-and-forget" custom integration that calculates the exact momen
 
 Unlike simple template sensors that check day-by-day, this integration uses a high-efficiency **Binary Search Algorithm** to identify the exact second the clocks shift, providing you with the transition timestamp, direction (Spring Forward/Fall Back), and an accurate countdown.
 
+The main state is the number of days until the next DST transition.
+
 ## Key Features
 
 - **Zero Configuration:** Automatically detects the timezone from your Home Assistant system settings. No manual input required.
