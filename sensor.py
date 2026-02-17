@@ -1,6 +1,8 @@
 # sensor.py
 from __future__ import annotations
-from datetime import datetime #, date
+from dataclasses import dataclass
+from collections.abc import Callable
+from datetime import datetime  # , date
 import logging
 
 # from const import DOMAIN
@@ -11,6 +13,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers.translation import async_get_translations
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntityDescription,
+)
+from homeassistant.const import (
+    EntityCategory,
+    UnitOfTime,
+)
+from homeassistant.helpers.typing import StateType
 
 from .const import DOMAIN
 from .entity import DSTForensics
@@ -18,27 +29,50 @@ from .entity import DSTForensics
 _LOGGER = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True, kw_only=True)
+class DSTSensorEntityDescription(SensorEntityDescription):
+    """Describes day light savings time sensor entity."""
+
+    value: Callable = lambda x: x
+
+
+DST_SENSOR_TYPES: tuple[DSTSensorEntityDescription, ...] = (
+    DSTSensorEntityDescription(
+        key="daysTotal",
+        device_class=SensorDeviceClass.DURATION,
+        translation_key="days_to_next_change",
+        native_unit_of_measurement=UnitOfTime.DAYS,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+)
+
+
 async def async_setup_entry(
-    hass: HomeAssistant, config_entry:ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
     # Use Home Assistant's configured timezone
     tz_str = hass.config.time_zone
     # We do NOT pass True here anymore. We handle the first update in the entity.
-    async_add_entities([DSTNextChangeSensor(tz_str)])
+    entities = [
+        DSTNextChangeSensor(description, tz_str) for description in DST_SENSOR_TYPES
+    ]
+    async_add_entities(entities)
 
 
 class DSTNextChangeSensor(SensorEntity):
     """The DST Transition Sensor."""
-    _attr_has_entity_name = True
+
+    has_entity_name = True
     _attr_translation_key = "dst_change_sensor"
-    _attr_icon = "mdi:clock-alert"
-    _attr_name = "Next DST Change"
     _attr_has_entity_name = True  # Best practice: uses integration name + entity name
 
-    def __init__(self, timezone_str: str) -> None:
+    def __init__(self, description: SensorEntityDescription, timezone_str: str) -> None:
         """Initialise the sensor."""
         self._logic = DSTForensics(timezone_str)
+        self.entity_description = description
         self._attr_unique_id = f"{timezone_str}_next_dst_change"
 
         # Internal Cache
@@ -51,14 +85,14 @@ class DSTNextChangeSensor(SensorEntity):
         """Return the number of days to the next change as the state."""
         # if moment := self._data.get("moment"):
         #     return moment.date().isoformat()
-        if days_to_event := self._data.get("days_to_event"):
-            if days_to_event == 0:
-                return "Today"
-            elif days_to_event == 1:
-                return "Tomorrow"
-            else:
-                return f"In {days_to_event} days"
-        return None
+        # if days_to_event := self._data.get("days_to_event"):
+        #     if days_to_event == 0:
+        #         return "Today"
+        #     elif days_to_event == 1:
+        #         return "Tomorrow"
+        #     else:
+        #         return f"In {days_to_event} days"
+        return self._data.get("days_to_event")
 
     @property
     def extra_state_attributes(self) -> dict:
@@ -100,42 +134,55 @@ class DSTNextChangeSensor(SensorEntity):
         elif (self._cached_info["moment"] - now_utc).days < 7:
             # 3. Upcoming change is less than a week away (Fail-safe for precision)
             should_recalculate = True
-        elif self._last_calculated_at and (now_utc - self._last_calculated_at).days >= 7:
+        elif (
+            self._last_calculated_at and (now_utc - self._last_calculated_at).days >= 7
+        ):
             # 4. Last calculation was more than a week ago
-            should_recalculate = True    
+            should_recalculate = True
 
         # --- Execution ---
         if should_recalculate:
             # This looks into your strings.json (or the localized equivalent)
             translations = await async_get_translations(
-                self.hass,
-                self.hass.config.language,
-                "entity_component",
-                [DOMAIN]
+                self.hass, self.hass.config.language, "entity_component", [DOMAIN]
             )
 
             # Helper to find the string in the translation map
             def get_string(category, key):
                 # The translation map key structure: component.DOMAIN.entity_component._.state_attributes.CATEGORY.state.KEY
                 path = f"component.{DOMAIN}.entity_component.sensor.state_attributes.{category}.state.{key}"
-                return translations.get(path, key) # Fallback to the key itself if not found            
+                return translations.get(
+                    path, key
+                )  # Fallback to the key itself if not found
+
             # Expensive: Run the Binary Search
             self._cached_info = self._logic.get_dst_info()
             self._last_calculated_at = now_utc
-            self._cached_info["direction"] = get_string("direction", self._cached_info["direction"])
-            self._cached_info["message"] = get_string("message", self._cached_info["message"])
-            self._cached_info["current_period"] = get_string("current_period", self._logic.get_current_period_key())
+            self._cached_info["direction"] = get_string(
+                "direction", self._cached_info["direction"]
+            )
+            self._cached_info["message"] = get_string(
+                "message", self._cached_info["message"]
+            )
+            self._cached_info["current_period"] = get_string(
+                "current_period", self._logic.get_current_period_key()
+            )
             _LOGGER.debug("DST Sensor: Performed full binary search recalculation.")
         else:
             # Cheap: Reuse cached moment, but recalculate the countdown
-            if self._cached_info is not None and self._cached_info.get("moment") is not None:
-                self._cached_info["days_to_event"] = (self._cached_info["moment"].date() - now_utc.date()).days
-                _LOGGER.debug("DST Sensor: Reusing cached transition data.")                
+            if (
+                self._cached_info is not None
+                and self._cached_info.get("moment") is not None
+            ):
+                self._cached_info["days_to_event"] = (
+                    self._cached_info["moment"].date() - now_utc.date()
+                ).days
+                _LOGGER.debug("DST Sensor: Reusing cached transition data.")
             else:
-                _LOGGER.debug("DST Sensor: No cached transition data to reuse.")                
+                _LOGGER.debug("DST Sensor: No cached transition data to reuse.")
 
         info = self._cached_info
-        
+
         # current_tz_name = datetime.now(self._logic.tz).strftime('%Z')
 
         if info is not None:
@@ -146,8 +193,8 @@ class DSTNextChangeSensor(SensorEntity):
                 "date": info["date"],
                 "iso": info["iso"],
                 "timezone": self._logic.tz.key,
-                "message": info["message"], 
-                "last_recalculated": self._last_calculated_at.isoformat(), # pyright: ignore[reportOptionalMemberAccess]
+                "message": info["message"],
+                "last_recalculated": self._last_calculated_at.isoformat(),  # pyright: ignore[reportOptionalMemberAccess]
                 "current_period": info["current_period"],
             }
         else:
