@@ -283,18 +283,21 @@ class DSTNextChangeSensor(SensorEntity):
             # Perform the expensive binary search to find the next DST transition
             self._cached_info = self._logic.get_dst_info()
             self._last_calculated_at = now_utc
-            
-            # Localize the string values
-            self._cached_info["direction"] = get_string(
-                "direction", self._cached_info["direction"]
-            )
-            self._cached_info["message"] = get_string(
-                "message", self._cached_info["message"]
-            )
-            self._cached_info["current_period"] = get_string(
-                "current_period", self._logic.get_current_period_key()
-            )
-            _LOGGER.debug("DST Sensor: Performed full binary search recalculation.")
+
+            if self._cached_info is not None:
+                # Localize the string values
+                self._cached_info["direction"] = get_string(
+                    "direction", self._cached_info["direction"]
+                )
+                self._cached_info["message"] = get_string(
+                    "message", self._cached_info["message"]
+                )
+                self._cached_info["current_period"] = get_string(
+                    "current_period", self._logic.get_current_period_key()
+                )
+                _LOGGER.debug("DST Sensor: Performed full binary search recalculation.")
+            else:
+                _LOGGER.debug("DST Sensor: No DST transition found for this timezone.")
         else:
             # CHEAP PATH: Reuse cached data, only update the countdown
             # This is much more efficient than running the full binary search
