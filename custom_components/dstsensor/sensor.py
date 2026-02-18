@@ -284,6 +284,7 @@ class DSTNextChangeSensor(SensorEntity):
             self._cached_info = self._logic.get_dst_info()
             self._last_calculated_at = now_utc
 
+            # _cached_info is None if no DST transitions are found in timezones without DST
             if self._cached_info is not None:
                 # Localize the string values
                 self._cached_info["direction"] = get_string(
